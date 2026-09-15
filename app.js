@@ -7,7 +7,7 @@
       {id:'inverted-row',name:'Inverted Row',type:'pull',min:8,max:12,load:0,unit:'BW',reps:10,rir:2,sets:3,note:'Controlled 2–3 sec lowering.'},
       {id:'bulgarian-split-squat',name:'Bulgarian Split Squat',type:'legs',min:8,max:12,load:5,unit:'kg',reps:10,rir:2,sets:3,note:'Each leg. Stable, controlled ROM.'},
       {id:'neutral-push-up',name:'Neutral-Grip Push-up',type:'push',min:6,max:10,load:0,unit:'BW',reps:8,rir:2,sets:3,note:'Elbows about 45°. No painful ROM.'},
-      {id:'goblet-squat',name:'Goblet Squat',type:'legs',min:10,max:15,load:5,unit:'kg',reps:12,rir:2,sets:3,note:'Smooth tempo; stay within comfortable ROM.'}
+      {id:'romanian-deadlift',name:'Romanian Deadlift',type:'legs',min:10,max:15,load:5,unit:'kg',reps:12,rir:2,sets:3,note:'Smooth tempo; stay within comfortable ROM.'}
     ],
     history:[], bodyLog:[], lastSync:null
   };
