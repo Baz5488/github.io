@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="Workout Control — mobile-first progressive overload tracker.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>Workout Control</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">WORKOUT CONTROL</div>
+        <h1 id="pageTitle">Dashboard</h1>
+      </div>
+      <button class="icon-btn" id="syncBtn" aria-label="Sync" title="Sync">↻</button>
+    </header>
+
+    <main id="main" class="main"></main>
+
+    <nav class="bottom-nav" aria-label="Primary">
+      <button data-nav="home" class="nav-btn active"><span>⌂</span><small>Home</small></button>
+      <button data-nav="workout" class="nav-btn"><span>🏋</span><small>Workout</small></button>
+      <button data-nav="progress" class="nav-btn"><span>↗</span><small>Progress</small></button>
+      <button data-nav="history" class="nav-btn"><span>☷</span><small>History</small></button>
+      <button data-nav="settings" class="nav-btn"><span>⚙</span><small>Settings</small></button>
+    </nav>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="modal" class="modal hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
