@@ -4,12 +4,44 @@
     profile:{weight:'',waist:''},
     user:null,
     exercises:[
-      {id:'inverted-row',name:'Inverted Row',type:'pull',min:8,max:12,load:0,unit:'BW',reps:10,rir:2,sets:3,note:'Controlled 2–3 sec lowering.'},
-      {id:'bulgarian-split-squat',name:'Bulgarian Split Squat',type:'legs',min:8,max:12,load:5,unit:'kg',reps:10,rir:2,sets:3,note:'Each leg. Stable, controlled ROM.'},
-      {id:'neutral-push-up',name:'Neutral-Grip Push-up',type:'push',min:6,max:10,load:0,unit:'BW',reps:8,rir:2,sets:3,note:'Elbows about 45°. No painful ROM.'},
-      {id:'romanian-deadlift',name:'Romanian Deadlift',type:'legs',min:10,max:15,load:5,unit:'kg',reps:12,rir:2,sets:3,note:'Smooth tempo; stay within comfortable ROM.'}
-    ],
-    history:[], bodyLog:[], lastSync:null
+      // 【コピペ用】デフォルトの4種目とカタログ定義
+const EXERCISE_CATALOG = {
+  pull: [
+    { id: 'inverted_row', name: 'Inverted Row', unit: 'reps' },
+    { id: 'pull_up', name: 'Pull Up', unit: 'reps' },
+    { id: 'dead_hang', name: 'Dead Hang', unit: 'sec' }
+  ],
+  squat: [
+    { id: 'bulgarian_split_squat', name: 'Bulgarian Split Squat', unit: 'kg' }
+  ],
+  push: [
+    { id: 'push_up', name: 'Push Up', unit: 'reps' },
+    { id: 'shoulder_press', name: 'Shoulder Press', unit: 'kg' }
+  ],
+  hinge: [
+    { id: 'romanian_deadlift', name: 'Romanian Deadlift', unit: 'kg' },
+    { id: 'kettlebell_swing', name: 'Kettlebell Swing', unit: 'kg' }
+  ],
+  other: [
+    { id: 'plank', name: 'Plank', unit: 'sec' },
+    { id: 'barbell_curl', name: 'Barbell Curl', unit: 'kg' }
+  ]
+};
+
+const defaultState = {
+  exercises: [
+    { id: 'inverted_row', name: 'Inverted Row', category: 'pull', min: 5, max: 20, load: 0, reps: 10, sets: 3, rir: 2, unit: 'reps', note: '' },
+    { id: 'bulgarian_split_squat', name: 'Bulgarian Split Squat', category: 'squat', min: 5, max: 20, load: 10, reps: 8, sets: 3, rir: 2, unit: 'kg', note: '' },
+    { id: 'push_up', name: 'Push Up', category: 'push', min: 5, max: 30, load: 0, reps: 12, sets: 3, rir: 2, unit: 'reps', note: '' },
+    { id: 'romanian_deadlift', name: 'Romanian Deadlift', category: 'hinge', min: 5, max: 20, load: 40, reps: 10, sets: 3, rir: 2, unit: 'kg', note: '' }
+  ],
+  profile: { weight: '', waist: '' },
+  bodyLog: [],
+  history: [],
+  user: null,
+  lastSync: null
+};
+
   };
   let state=load(); let page='home'; let timer=null; let remaining=0;
   const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
@@ -49,10 +81,58 @@
     <div class="section-title"><h2>Next targets</h2><span class="pill">Automatic</span></div><div class="card">${state.exercises.map(e=>{const [s,c]=status(e);return `<div class="progress-row"><div><b>${esc(e.name)}</b><div class="tiny muted">Current: ${e.reps} reps${e.load?` @ ${e.load} kg`:''} · RIR ${e.rir}</div><div class="bar"><i style="width:${Math.min(100,Math.round(e.reps/e.max*100))}%"></i></div></div><span class="pill ${c}">${esc(s)}</span></div>`}).join('')}</div>
     <div class="card"><h3>Cloud status</h3><p class="tiny muted">${state.user?`Signed in as ${esc(state.user.email)}. Last sync: ${state.lastSync?fmtDate(state.lastSync):'not yet synced'}.`:'Local mode. Your data is stored on this device until you sign in.'}</p></div>`;
   }
-  function renderWorkout(){
-    $('#main').innerHTML=`<section class="hero"><span class="pill">Full Body · 3× / week</span><h2>Today's Session</h2><p class="muted">Controlled reps. Leave about 1–3 reps in reserve. Stop or modify any movement that causes pain.</p><div class="actions"><button class="btn secondary" onclick="WC.startRest(90)">Start 90s Rest</button><button class="btn" onclick="WC.finishWorkout()">Finish Workout</button></div><div id="timerText" class="tiny muted" style="margin-top:9px"></div></section>${state.exercises.map((e,i)=>exerciseCard(e,i)).join('')}`;
+    function renderWorkout(){
+    // 他のカテゴリーの種目が選択肢に並ぶようにするセレクトボックス（5つ目の追加用）
+    const existingOther = state.exercises.find(x => x.category === 'other');
+    const currentOtherId = existingOther ? existingOther.id : '';
+    
+    const otherSelectHTML = `
+      <section class="card" style="margin-top: 15px; padding: 12px;">
+        <div class="tiny muted" style="margin-bottom: 5px;">➕ Add 5th Exercise (Optional)</div>
+        <select class="field" style="margin:0; width:100%;" onchange="WC.changeExercise('other', this.value)">
+          <option value="">-- No Extra Exercise --</option>
+          ${EXERCISE_CATALOG.other.map(x => `<option value="${x.id}" ${currentOtherId === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
+        </select>
+      </section>
+    `;
+
+    $('#main').innerHTML=`<section class="hero"><span class="pill">Full Body · 3× / week</span><h2>Today's Session</h2><p class="muted">Controlled reps. Leave about 1–3 reps in reserve. Stop or modify any movement that causes pain.</p><div class="actions"><button class="btn secondary" onclick="WC.startRest(90)">Start 90s Rest</button><button class="btn" onclick="WC.finishWorkout()">Finish Workout</button></div><div id="timerText" class="tiny muted" style="margin-top:9px"></div></section>${state.exercises.map((e,i)=>exerciseCard(e,i)).join('')}${otherSelectHTML}`;
   }
-  function exerciseCard(e,i){return `<article class="exercise"><div class="exercise-head"><div><h3>${i+1}. ${esc(e.name)}</h3><div class="meta">${esc(e.note)}</div></div><span class="pill">${e.sets} sets</span></div><div class="target-box"><div class="tiny muted">NEXT TARGET</div><b>${esc(nextTarget(e))}</b><div class="tiny muted">Current: ${e.reps} reps${e.load?` @ ${e.load} kg`:''} · RIR ${e.rir}</div></div><div class="controls"><div><div class="tiny muted" style="text-align:center">Reps</div><div class="stepper"><button class="circle" onclick="WC.bump('${e.id}',-1)">−</button><strong id="rep-${e.id}">${e.reps}</strong><button class="circle" onclick="WC.bump('${e.id}',1)">+</button></div></div><div><div class="tiny muted">RIR</div><select class="field" style="margin:0" onchange="WC.setRir('${e.id}',this.value)">${[0,1,2,3,4,5].map(x=>`<option ${Number(e.rir)===x?'selected':''}>${x}</option>`).join('')}</select></div><div><div class="tiny muted">Load</div><input class="field" style="margin:0;padding:10px" type="number" step="0.5" min="0" value="${e.load}" onchange="WC.setLoad('${e.id}',this.value)"></div></div></article>`}
+
+          function exerciseCard(e,i){
+    // 1〜4番目の基本メニュー（Pull, Squat, Push, Hinge）用の切り替えセレクトボックス
+    let switchMenuHTML = '';
+    if (e.category && e.category !== 'other') {
+      const options = EXERCISE_CATALOG[e.category] || [];
+      switchMenuHTML = `
+        <div style="margin-top: 10px;">
+          <select class="field tiny" style="margin:0; font-size:12px; padding:4px 8px; height:auto; width:auto;" onchange="WC.changeExercise('${e.category}', this.value)">
+            ${options.map(x => `<option value="${x.id}" ${e.id === x.id ? 'selected' : ''}>🔄 Switch: ${esc(x.name)}</option>`).join('')}
+          </select>
+        </div>
+      `;
+    }
+
+    // Plank または Dead Hang の時だけ一発起動する専用タイマーボタン
+    const isTimedExercise = (e.id === 'plank' || e.id === 'dead_hang');
+    const timerButtonsHTML = isTimedExercise ? `
+      <div class="quick-timers" style="margin: 10px 0 0; display: flex; gap: 8px;">
+        <button class="btn secondary small" style="padding: 4px 8px; font-size: 12px;" onclick="WC.startRest(30)">⏱️ 30s</button>
+        <button class="btn secondary small" style="padding: 4px 8px; font-size: 12px;" onclick="WC.startRest(60)">⏱️ 60s</button>
+        <button class="btn secondary small" style="padding: 4px 8px; font-size: 12px;" onclick="WC.startRest(${e.reps})">⏱️ Target (${e.reps}s)</button>
+      </div>
+    ` : '';
+
+    // システムエラー対策として、数字の配列を別の形で安全に作成
+    const rirOptions = Array.from({length: 6}, (_, idx) => idx).map(x => `<option ${Number(e.rir)===x?'selected':''}>${x}</option>`).join('');
+
+    return `<article class="exercise"><div class="exercise-head"><div><h3>${i+1}. ${esc(e.name)}</h3><div class="meta">${esc(e.note)}</div>${switchMenuHTML}</div><span class="pill">${e.sets} sets</span></div><div class="target-box"><div class="tiny muted">NEXT TARGET</div><b>${esc(nextTarget(e))}</b><div class="tiny muted">Current: ${e.reps} ${e.unit === 'sec' ? 'sec' : 'reps'}${e.load?` @ ${e.load} kg`:''} · RIR ${e.rir}</div></div>${timerButtonsHTML}<div class="controls"><div><div class="tiny muted" style="text-align:center">${e.unit === 'sec' ? 'Seconds' : 'Reps'}</div><div class="stepper"><button class="circle" onclick="WC.bump('${e.id}',-1)">−</button><strong id="rep-${e.id}">${e.reps}</strong><button class="circle" onclick="WC.bump('${e.id}',1)">+</button></div></div><div><div class="tiny muted">RIR</div><select class="field" style="margin:0" onchange="WC.setRir('${e.id}',this.value)">${rirOptions}</select></div><div><div class="tiny muted">Load</div><input class="field" style="margin:0;padding:10px" type="number" step="0.5" min="0" value="${e.load}" onchange="WC.setLoad('${e.id}',this.value)"></div></div></article>`
+  }
+
+
+
+
+
   function renderProgress(){
     const rows=state.exercises.map(e=>`<div class="progress-row"><div><b>${esc(e.name)}</b><div class="tiny muted">${e.reps}/${e.max} reps · ${e.load?e.load+' kg':'Bodyweight'} · RIR ${e.rir}</div><div class="bar"><i style="width:${Math.min(100,e.reps/e.max*100)}%"></i></div></div><strong>${esc(nextTarget(e))}</strong></div>`).join('');
     const body=state.bodyLog.slice(-8);$('#main').innerHTML=`<section class="hero"><span class="pill good">Progressive Overload Engine</span><h2>Progress</h2><p class="muted">The rule is simple: add reps inside the range; once the top of the range is reached, add load or difficulty.</p></section><div class="card"><h3>Exercise progression</h3>${rows}</div><div class="card"><h3>Body trend</h3>${body.length<2?`<div class="empty">Add at least two weight/waist entries in Settings to see your trend.</div>`:`<canvas id="bodyChart" class="chart" width="900" height="300"></canvas>`}</div>`;
@@ -94,13 +174,87 @@
         toast('Cloud sync failed, saved locally');
       }
     }
-    
-    render();
+    // 【コピペ用】種目の入れ替え＆5番目の追加ロジック
+function changeExercise(category, newExerciseId) {
+  if (!newExerciseId) {
+    // 5番目のメニュー（Other）で「なし」を選んだ場合は削除
+    if (category === 'other') {
+      state.exercises = state.exercises.filter(x => x.category !== 'other');
+    }
+  } else {
+    const catalogList = EXERCISE_CATALOG[category];
+    const newEx = catalogList.find(x => x.id === newExerciseId);
+    if (!newEx) return;
+
+    if (category !== 'other') {
+      // 1〜4番目の基本メニューを入れ替える
+      const index = state.exercises.findIndex(x => x.category === category);
+      if (index !== -1) {
+        state.exercises[index].id = newEx.id;
+        state.exercises[index].name = newEx.name;
+        state.exercises[index].unit = newEx.unit;
+        state.exercises[index].load = newEx.unit === 'kg' ? 20 : 0;
+        state.exercises[index].reps = newEx.unit === 'sec' ? 30 : 8;
+      }
+    } else {
+      // 5番目の「Other」枠を追加または上書き
+      const index = state.exercises.findIndex(x => x.category === 'other');
+      const newOtherData = { id: newEx.id, name: newEx.name, category: 'other', min: 5, max: 100, load: newEx.unit === 'kg' ? 10 : 0, reps: newEx.unit === 'sec' ? 60 : 10, sets: 3, rir: 1, unit: newEx.unit, note: '' };
+      
+      if (index !== -1) {
+        state.exercises[index] = newOtherData;
+      } else {
+        state.exercises.push(newOtherData); // リストの最後（5番目）に追加
+      }
+    }
   }
 
-  function bump(id,d){const e=state.exercises.find(x=>x.id===id);e.reps=Math.max(0,Math.min(e.max,e.reps+d));save();const el=$(`#rep-${id}`);if(el)el.textContent=e.reps}
-  function setRir(id,v){state.exercises.find(x=>x.id===id).rir=Number(v);save()}
-  function setLoad(id,v){state.exercises.find(x=>x.id===id).load=Math.max(0,Number(v)||0);save()}
+   save();
+  if (state.user && typeof sync === 'function') sync();
+  render();
+}
+
+// グローバルから呼べるように割り当て
+if (window.WC) { 
+  window.WC.changeExercise = changeExercise; 
+} else { 
+  window.changeExercise = changeExercise; 
+}
+
+
+    async function bump(id,d){
+    const e=state.exercises.find(x=>x.id===id);
+    e.reps=Math.max(0,Math.min(e.max,e.reps+d));
+    save();
+    const el=$(`#rep-${id}`);
+    if(el)el.textContent=e.reps;
+    
+    // 【追加】変更をSupabaseに自動同期
+    if(state.user && typeof sync==='function') {
+      await sync();
+    }
+  }
+
+  async function setRir(id,v){
+    state.exercises.find(x=>x.id===id).rir=Number(v);
+    save();
+    
+    // 【追加】変更をSupabaseに自動同期
+    if(state.user && typeof sync==='function') {
+      await sync();
+    }
+  }
+
+  async function setLoad(id,v){
+    state.exercises.find(x=>x.id===id).load=Math.max(0,Number(v)||0);
+    save();
+    
+    // 【追加】変更をSupabaseに自動同期
+    if(state.user && typeof sync==='function') {
+      await sync();
+    }
+  }
+
   function finishWorkout(){const now=new Date().toISOString();const log={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:now,exercises:state.exercises.map(e=>({id:e.id,name:e.name,reps:e.reps,sets:e.sets,load:e.load,rir:e.rir}))};state.history.unshift(log);state.history=state.history.slice(0,100);state.lastSync=null;save();toast('Workout completed');if(state.user)sync();render();}
   function startRest(sec){clearInterval(timer);remaining=sec;updateTimer();timer=setInterval(()=>{remaining--;updateTimer();if(remaining<=0){clearInterval(timer);toast('Rest complete');navigator.vibrate?.([150,80,150])}},1000)}
   function updateTimer(){const el=$('#timerText');if(el)el.textContent=remaining?`Rest timer: ${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`:''}
