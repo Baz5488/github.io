@@ -99,7 +99,7 @@ const defaultState = {
     $('#main').innerHTML=`<section class="hero"><span class="pill">Full Body · 3× / week</span><h2>Today's Session</h2><p class="muted">Controlled reps. Leave about 1–3 reps in reserve. Stop or modify any movement that causes pain.</p><div class="actions"><button class="btn secondary" onclick="WC.startRest(90)">Start 90s Rest</button><button class="btn" onclick="WC.finishWorkout()">Finish Workout</button></div><div id="timerText" class="tiny muted" style="margin-top:9px"></div></section>${state.exercises.map((e,i)=>exerciseCard(e,i)).join('')}${otherSelectHTML}`;
   }
 
-        function exerciseCard(e,i){
+          function exerciseCard(e,i){
     // 1〜4番目の基本メニュー（Pull, Squat, Push, Hinge）用の切り替えセレクトボックス
     let switchMenuHTML = '';
     if (e.category && e.category !== 'other') {
@@ -123,8 +123,12 @@ const defaultState = {
       </div>
     ` : '';
 
-    return `<article class="exercise"><div class="exercise-head"><div><h3>${i+1}. ${esc(e.name)}</h3><div class="meta">${esc(e.note)}</div>${switchMenuHTML}</div><span class="pill">${e.sets} sets</span></div><div class="target-box"><div class="tiny muted">NEXT TARGET</div><b>${esc(nextTarget(e))}</b><div class="tiny muted">Current: ${e.reps} ${e.unit === 'sec' ? 'sec' : 'reps'}${e.load?` @ ${e.load} kg`:''} · RIR ${e.rir}</div></div>${timerButtonsHTML}<div class="controls"><div><div class="tiny muted" style="text-align:center">${e.unit === 'sec' ? 'Seconds' : 'Reps'}</div><div class="stepper"><button class="circle" onclick="WC.bump('${e.id}',-1)">−</button><strong id="rep-${e.id}">${e.reps}</strong><button class="circle" onclick="WC.bump('${e.id}',1)">+</button></div></div><div><div class="tiny muted">RIR</div><select class="field" style="margin:0" onchange="WC.setRir('${e.id}',this.value)">${[0,1,2,3,4,5].map(x=>`<option ${Number(e.rir)===x?'selected':''}>${x}</option>`).join('')}</select></div><div><div class="tiny muted">Load</div><input class="field" style="margin:0;padding:10px" type="number" step="0.5" min="0" value="${e.load}" onchange="WC.setLoad('${e.id}',this.value)"></div></div></article>`
+    // システムエラー対策として、数字の配列を別の形で安全に作成
+    const rirOptions = Array.from({length: 6}, (_, idx) => idx).map(x => `<option ${Number(e.rir)===x?'selected':''}>${x}</option>`).join('');
+
+    return `<article class="exercise"><div class="exercise-head"><div><h3>${i+1}. ${esc(e.name)}</h3><div class="meta">${esc(e.note)}</div>${switchMenuHTML}</div><span class="pill">${e.sets} sets</span></div><div class="target-box"><div class="tiny muted">NEXT TARGET</div><b>${esc(nextTarget(e))}</b><div class="tiny muted">Current: ${e.reps} ${e.unit === 'sec' ? 'sec' : 'reps'}${e.load?` @ ${e.load} kg`:''} · RIR ${e.rir}</div></div>${timerButtonsHTML}<div class="controls"><div><div class="tiny muted" style="text-align:center">${e.unit === 'sec' ? 'Seconds' : 'Reps'}</div><div class="stepper"><button class="circle" onclick="WC.bump('${e.id}',-1)">−</button><strong id="rep-${e.id}">${e.reps}</strong><button class="circle" onclick="WC.bump('${e.id}',1)">+</button></div></div><div><div class="tiny muted">RIR</div><select class="field" style="margin:0" onchange="WC.setRir('${e.id}',this.value)">${rirOptions}</select></div><div><div class="tiny muted">Load</div><input class="field" style="margin:0;padding:10px" type="number" step="0.5" min="0" value="${e.load}" onchange="WC.setLoad('${e.id}',this.value)"></div></div></article>`
   }
+
 
 
 
