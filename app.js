@@ -70,7 +70,34 @@
     <section class="card"><h3>App</h3><p class="tiny muted">Workout Control v3 · PWA · local-first · optional Supabase sync.</p><button class="btn danger" onclick="WC.resetLocal()">Reset local data</button></section>`;
     $('#importFile').onchange=importData;
   }
-  function saveProfile(){state.profile.weight=$('#weight').value;state.profile.waist=$('#waist').value;state.bodyLog.unshift({date:new Date().toISOString(),weight:Number(state.profile.weight)||null,waist:Number(state.profile.waist)||null});state.bodyLog=state.bodyLog.slice(0,30);save();toast('Profile saved');render()}
+    async function saveProfile(){
+    state.profile.weight = $('#weight').value;
+    state.profile.waist = $('#waist').value;
+    
+    state.bodyLog.unshift({
+      date: new Date().toISOString(),
+      weight: Number(state.profile.weight) || null,
+      waist: Number(state.profile.waist) || null
+    });
+    state.bodyLog = state.bodyLog.slice(0,30);
+    
+    save(); // ローカルに保存
+    toast('Profile saved locally');
+
+    // 【追加】もしログイン中なら、自動でSupabaseにも保存（同期）する
+    if (state.user && typeof sync === 'function') {
+      try {
+        toast('Syncing with Supabase...');
+        await sync(); 
+      } catch (e) {
+        console.error(e);
+        toast('Cloud sync failed, saved locally');
+      }
+    }
+    
+    render();
+  }
+
   function bump(id,d){const e=state.exercises.find(x=>x.id===id);e.reps=Math.max(0,Math.min(e.max,e.reps+d));save();const el=$(`#rep-${id}`);if(el)el.textContent=e.reps}
   function setRir(id,v){state.exercises.find(x=>x.id===id).rir=Number(v);save()}
   function setLoad(id,v){state.exercises.find(x=>x.id===id).load=Math.max(0,Number(v)||0);save()}
