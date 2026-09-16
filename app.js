@@ -98,9 +98,39 @@
     render();
   }
 
-  function bump(id,d){const e=state.exercises.find(x=>x.id===id);e.reps=Math.max(0,Math.min(e.max,e.reps+d));save();const el=$(`#rep-${id}`);if(el)el.textContent=e.reps}
-  function setRir(id,v){state.exercises.find(x=>x.id===id).rir=Number(v);save()}
-  function setLoad(id,v){state.exercises.find(x=>x.id===id).load=Math.max(0,Number(v)||0);save()}
+    async function bump(id,d){
+    const e=state.exercises.find(x=>x.id===id);
+    e.reps=Math.max(0,Math.min(e.max,e.reps+d));
+    save();
+    const el=$(`#rep-${id}`);
+    if(el)el.textContent=e.reps;
+    
+    // 【追加】変更をSupabaseに自動同期
+    if(state.user && typeof sync==='function') {
+      await sync();
+    }
+  }
+
+  async function setRir(id,v){
+    state.exercises.find(x=>x.id===id).rir=Number(v);
+    save();
+    
+    // 【追加】変更をSupabaseに自動同期
+    if(state.user && typeof sync==='function') {
+      await sync();
+    }
+  }
+
+  async function setLoad(id,v){
+    state.exercises.find(x=>x.id===id).load=Math.max(0,Number(v)||0);
+    save();
+    
+    // 【追加】変更をSupabaseに自動同期
+    if(state.user && typeof sync==='function') {
+      await sync();
+    }
+  }
+
   function finishWorkout(){const now=new Date().toISOString();const log={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:now,exercises:state.exercises.map(e=>({id:e.id,name:e.name,reps:e.reps,sets:e.sets,load:e.load,rir:e.rir}))};state.history.unshift(log);state.history=state.history.slice(0,100);state.lastSync=null;save();toast('Workout completed');if(state.user)sync();render();}
   function startRest(sec){clearInterval(timer);remaining=sec;updateTimer();timer=setInterval(()=>{remaining--;updateTimer();if(remaining<=0){clearInterval(timer);toast('Rest complete');navigator.vibrate?.([150,80,150])}},1000)}
   function updateTimer(){const el=$('#timerText');if(el)el.textContent=remaining?`Rest timer: ${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`:''}
