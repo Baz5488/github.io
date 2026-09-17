@@ -65,11 +65,30 @@
         </div>
         <div class="bar">
           <i style="width:${(Math.min(100, (e.reps / e.max) * 100))}%"></i>
+        <div class="section-title">
+  <h2>Next targets</h2>
+  <span class="pill">Automatic</span>
+</div>
+
+<div class="card">
+  ${state.exercises
+    .map((e) => {
+      const [s, c] = status(e);
+
+      return `
+        <div class="progress-row">
+          <div>
+            <b>${e.name}</b>
+            <span class="${c}">${s}</span>
+          </div>
+          <div class="bar">
+            <i style="width:${Math.min(100, (e.reps / e.max) * 100)}%"></i>
+          </div>
         </div>
-      </div>
-      <strong>${esc(nextTarget(e))}</strong>
-    </div>
-  `).join('');
+      `;
+    })
+    .join("")}
+</div>
 
   const body = state.bodyLog.slice(-8);
 
