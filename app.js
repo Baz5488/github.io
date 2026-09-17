@@ -133,7 +133,14 @@
 
   function finishWorkout(){const now=new Date().toISOString();const log={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:now,exercises:state.exercises.map(e=>({id:e.id,name:e.name,reps:e.reps,sets:e.sets,load:e.load,rir:e.rir}))};state.history.unshift(log);state.history=state.history.slice(0,100);state.lastSync=null;save();toast('Workout completed');if(state.user)sync();render();}
   function startRest(sec){clearInterval(timer);remaining=sec;updateTimer();timer=setInterval(()=>{remaining--;updateTimer();if(remaining<=0){clearInterval(timer);toast('Rest complete');navigator.vibrate?.([150,80,150])}},1000)}
-  function updateTimer(){const el=$('#timerText');if(el)el.textContent=remaining?`Rest timer: ${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`:''}
+  function updateTimer(){
+  const el = $('#timerText');
+  if(el) {
+    el.textContent = remaining
+      ? `${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`
+      : '';
+  }
+}
   function exportData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`workout-control-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)}
   function importData(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.exercises||!x.history)throw Error('Invalid backup');state={...defaultState,...x};save();render();toast('Backup imported')}catch(e){toast('Invalid backup')}};r.readAsText(f)}
   function resetLocal(){if(confirm('Reset all local workout data on this device?')){localStorage.removeItem(KEY);state=structuredClone(defaultState);render();toast('Local data reset')}}
