@@ -64,7 +64,7 @@
           RIR ${e.rir}
         </div>
         <div class="bar">
-          <i style="width:${Math.min(100, (e.reps / e.max) * 100))}%"></i>
+          <i style="width:${(Math.min(100, (e.reps / e.max) * 100))}%"></i>
         </div>
       </div>
       <strong>${esc(nextTarget(e))}</strong>
