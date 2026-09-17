@@ -60,9 +60,54 @@
   }
   function drawChart(data){const c=$('#bodyChart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const vals=data.map(x=>Number(x.weight)).filter(Boolean);if(!vals.length)return;const min=Math.min(...vals)-1,max=Math.max(...vals)+1;ctx.strokeStyle='#263247';ctx.lineWidth=1;for(let i=0;i<5;i++){const y=30+i*(h-60)/4;ctx.beginPath();ctx.moveTo(40,y);ctx.lineTo(w-20,y);ctx.stroke()}ctx.strokeStyle='#62d6a7';ctx.lineWidth=4;ctx.beginPath();data.forEach((p,i)=>{const x=45+i*(w-75)/Math.max(1,data.length-1),y=30+(max-Number(p.weight))/(max-min)*(h-60);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();ctx.fillStyle='#f4f7fb';ctx.font='14px system-ui';ctx.fillText(`${max.toFixed(1)} kg`,45,22);ctx.fillText(`${min.toFixed(1)} kg`,45,h-8)}
   function renderHistory(){
-    if(!state.history.length){$('#main').innerHTML=`<div class="empty">No completed workouts yet.<br><br><button class="btn" onclick="WC.go('workout')">Start Workout</button></div>`;return}
-    $('#main').innerHTML=state.history.map((h,i)=>`<article class="card"><div class="section-title" style="margin:0 0 8px"><h3>${fmtDate(h.date)}</h3><span class="pill good">Completed</span></div><table class="table"><thead><tr><th>Exercise</th><th>Reps</th><th>Load</th><th>RIR</th></tr></thead><tbody>${h.exercises.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.reps} × ${x.sets}</td><td>${x.load?x.load+' kg':'BW'}</td><td>${x.rir}</td></tr>`).join('')}</tbody></table></article>`).join('');
+  if(!state.history.length){
+    $('#main').innerHTML=`
+      <div class="empty">
+        No completed workouts yet.<br><br>
+        <button class="btn" onclick="WC.go('workout')">Start Workout</button>
+      </div>`;
+    return;
   }
+
+  $('#main').innerHTML=state.history.map((h,i)=>`
+    <article class="card">
+      <div class="section-title" style="margin:0 0 8px">
+        <h3>${fmtDate(h.date)}</h3>
+
+        <div class="actions">
+          <span class="pill good">Completed</span>
+          <button
+            class="btn danger small"
+            onclick="WC.deleteHistory('${esc(h.id)}')">
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Exercise</th>
+            <th>Reps</th>
+            <th>Load</th>
+            <th>RIR</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${h.exercises.map(x=>`
+            <tr>
+              <td>${esc(x.name)}</td>
+              <td>${x.reps} × ${x.sets}</td>
+              <td>${x.load?x.load+' kg':'BW'}</td>
+              <td>${x.rir}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </article>
+  `).join('');
+}
   function renderSettings(){
     $('#main').innerHTML=`<section class="card"><h3>Profile</h3><div class="form-grid"><div class="field"><label>Body weight (kg)</label><input id="weight" type="number" step="0.1" value="${esc(state.profile.weight)}"></div><div class="field"><label>Waist (cm)</label><input id="waist" type="number" step="0.1" value="${esc(state.profile.waist)}"></div></div><button class="btn" onclick="WC.saveProfile()">Save profile</button></section>
     <section class="card"><h3>Cloud account</h3><div class="status ${state.user?'ok':''}">${state.user?`Signed in: ${esc(state.user.email)}`:'Not signed in'}</div><div class="actions">${state.user?'<button class="btn secondary" onclick="WC.sync()">Sync now</button><button class="btn danger" onclick="WC.logout()">Sign out</button>':'<button class="btn" onclick="WC.goAuth()">Sign in / Create account</button>'}</div><p class="tiny muted" style="margin-top:10px">Cloud sync needs Supabase URL + anon/publishable key in <code>config.js</code>. Local mode works without it.</p></section>
@@ -141,6 +186,41 @@
       : '';
   }
 }
+  async function deleteHistory(id){
+  const item = state.history.find(h => h.id === id);
+
+  if(!item) return;
+
+  if(!confirm(`Delete workout from ${fmtDate(item.date)}?`)){
+    return;
+  }
+
+  // Remove locally
+  state.history = state.history.filter(h => h.id !== id);
+  save();
+
+  // Remove from Supabase if signed in
+  if(state.user && supabaseClient){
+    try{
+      const {error} = await supabaseClient
+        .from('workout_history')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', state.user.id);
+
+      if(error) throw error;
+
+      toast('History deleted');
+    }catch(e){
+      console.error('Delete history failed:', e);
+      toast('Deleted locally; cloud delete failed');
+    }
+  }else{
+    toast('History deleted');
+  }
+
+  render();
+}
   function exportData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`workout-control-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)}
   function importData(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.exercises||!x.history)throw Error('Invalid backup');state={...defaultState,...x};save();render();toast('Backup imported')}catch(e){toast('Invalid backup')}};r.readAsText(f)}
   function resetLocal(){if(confirm('Reset all local workout data on this device?')){localStorage.removeItem(KEY);state=structuredClone(defaultState);render();toast('Local data reset')}}
@@ -161,7 +241,21 @@
   }
   async function logout(){if(supabaseClient)await supabaseClient.auth.signOut();state.user=null;save();render();toast('Signed out')}
   let supabaseClient=null;const cfg=window.WORKOUT_CONFIG||{};if(window.supabase&&cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY){supabaseClient=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);supabaseClient.auth.getSession().then(async({data})=>{if(data.session){state.user=data.session.user;await pullCloud();render()}});supabaseClient.auth.onAuthStateChange((_e,s)=>{state.user=s?.user||null;save();render()})}
-  window.WC={go:p=>{page=p;render()},goAuth:()=>{page='auth';render()},bump,setRir,setLoad,finishWorkout,startRest,saveProfile,exportData,resetLocal,sync,logout};
+  window.WC={
+  go:p=>{page=p;render()},
+  goAuth:()=>{page='auth';render()},
+  bump,
+  setRir,
+  setLoad,
+  finishWorkout,
+  deleteHistory,
+  startRest,
+  saveProfile,
+  exportData,
+  resetLocal,
+  sync,
+  logout
+};
   $$('.nav-btn').forEach(b=>b.onclick=()=>{page=b.dataset.nav;render()});$('#syncBtn').onclick=()=>state.user?sync():toast('Local mode');
   render();
   if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
