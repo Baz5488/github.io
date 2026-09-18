@@ -54,67 +54,60 @@
   }
   function exerciseCard(e,i){return `<article class="exercise"><div class="exercise-head"><div><h3>${i+1}. ${esc(e.name)}</h3><div class="meta">${esc(e.note)}</div></div><span class="pill">${e.sets} sets</span></div><div class="target-box"><div class="tiny muted">NEXT TARGET</div><b>${esc(nextTarget(e))}</b><div class="tiny muted">Current: ${e.reps} reps${e.load?` @ ${e.load} kg`:''} · RIR ${e.rir}</div></div><div class="controls"><div><div class="tiny muted" style="text-align:center">Reps</div><div class="stepper"><button class="circle" onclick="WC.bump('${e.id}',-1)">−</button><strong id="rep-${e.id}">${e.reps}</strong><button class="circle" onclick="WC.bump('${e.id}',1)">+</button></div></div><div><div class="tiny muted">RIR</div><select class="field" style="margin:0" onchange="WC.setRir('${e.id}',this.value)">${[0,1,2,3,4,5].map(x=>`<option ${Number(e.rir)===x?'selected':''}>${x}</option>`).join('')}</select></div><div><div class="tiny muted">Load</div><input class="field" style="margin:0;padding:10px" type="number" step="0.5" min="0" value="${e.load}" onchange="WC.setLoad('${e.id}',this.value)"></div></div></article>`}
   function renderProgress(){
+
   const rows = state.exercises.map(e => `
     <div class="progress-row">
       <div>
         <b>${esc(e.name)}</b>
+
         <div class="tiny muted">
           ${e.reps}/${e.max} reps ·
-          ${e.load ? e.load+' kg' : 'Bodyweight'} ·
+          ${e.load ? e.load + ' kg' : 'Bodyweight'} ·
           RIR ${e.rir}
         </div>
+
         <div class="bar">
-          <i style="width:${(Math.min(100, (e.reps / e.max) * 100))}%"></i>
-        <div class="section-title">
-  <h2>Next targets</h2>
-  <span class="pill">Automatic</span>
-</div>
-
-<div class="card">
-  ${state.exercises
-    .map((e) => {
-      const [s, c] = status(e);
-
-      return `
-        <div class="progress-row">
-          <div>
-            <b>${e.name}</b>
-            <span class="${c}">${s}</span>
-          </div>
-          <div class="bar">
-            <i style="width:${Math.min(100, (e.reps / e.max) * 100)}%"></i>
-          </div>
+          <i style="width:${Math.min(100,(e.reps/e.max)*100)}%"></i>
         </div>
-      `;
-    })
-    .join("")}
-</div>
+      </div>
+
+      <strong>${esc(nextTarget(e))}</strong>
+    </div>
+  `).join('');
 
   const body = state.bodyLog.slice(-8);
 
   $('#main').innerHTML = `
     <section class="hero">
       <span class="pill good">Progressive Overload Engine</span>
+
       <h2>Progress</h2>
+
       <p class="muted">
-        Add reps inside the range. Once the top of the range is reached,
-        add load or difficulty.
+        Add reps inside the range. Once the top of the range
+        is reached, add load or difficulty.
       </p>
     </section>
 
     <div class="card">
       <h3>Exercise progression</h3>
+
       ${rows}
     </div>
 
     <div class="progress-charts">
 
       <!-- BODY TREND -->
+
       <section class="card chart-card">
+
         <div class="chart-header">
           <div>
             <h3>Body Trend</h3>
-            <div class="tiny muted">Body weight over time</div>
+
+            <div class="tiny muted">
+              Body weight over time
+            </div>
           </div>
         </div>
 
@@ -135,13 +128,18 @@
             </canvas>
           `
         }
+
       </section>
 
+
       <!-- TRAINING PROGRESSION -->
+
       <section class="card chart-card">
+
         <div class="chart-header">
           <div>
             <h3>Training Progression</h3>
+
             <div class="tiny muted">
               Performance across completed workouts
             </div>
@@ -152,6 +150,7 @@
 
           <div class="field">
             <label>Exercise</label>
+
             <select id="trainingExercise">
               ${state.exercises.map(e => `
                 <option value="${esc(e.id)}">
@@ -161,8 +160,10 @@
             </select>
           </div>
 
+
           <div class="field">
             <label>Metric</label>
+
             <select id="trainingMetric">
               <option value="reps">Reps</option>
               <option value="load">Load</option>
@@ -183,15 +184,21 @@
     </div>
   `;
 
+
   // Draw body chart
+
   if(body.length >= 2){
     drawChart(body);
   }
 
+
   // Draw training progression
+
   drawTrainingChart();
 
-  // Update training graph when exercise or metric changes
+
+  // Training graph controls
+
   const exerciseSelect = $('#trainingExercise');
   const metricSelect = $('#trainingMetric');
 
@@ -206,15 +213,18 @@
 
 
 function drawChart(data){
+
   const c = $('#bodyChart');
 
   if(!c) return;
 
   const ctx = c.getContext('2d');
+
   const w = c.width;
   const h = c.height;
 
   ctx.clearRect(0,0,w,h);
+
 
   const vals = data
     .map(x => Number(x.weight))
@@ -222,15 +232,20 @@ function drawChart(data){
 
   if(!vals.length) return;
 
+
   const min = Math.min(...vals) - 1;
   const max = Math.max(...vals) + 1;
 
+
   // Grid
+
   ctx.strokeStyle = '#263247';
   ctx.lineWidth = 1;
 
   for(let i=0;i<5;i++){
-    const y = 30 + i*(h-60)/4;
+
+    const y =
+      30 + i*(h-60)/4;
 
     ctx.beginPath();
     ctx.moveTo(40,y);
@@ -238,7 +253,9 @@ function drawChart(data){
     ctx.stroke();
   }
 
+
   // Line
+
   ctx.strokeStyle = '#62d6a7';
   ctx.lineWidth = 4;
   ctx.beginPath();
@@ -263,7 +280,9 @@ function drawChart(data){
 
   ctx.stroke();
 
+
   // Points
+
   ctx.fillStyle = '#62d6a7';
 
   data.forEach((p,i) => {
@@ -282,7 +301,9 @@ function drawChart(data){
 
   });
 
+
   // Labels
+
   ctx.fillStyle = '#f4f7fb';
   ctx.font = '14px system-ui';
 
@@ -307,21 +328,30 @@ function drawTrainingChart(){
   if(!c) return;
 
   const ctx = c.getContext('2d');
+
   const w = c.width;
   const h = c.height;
 
   ctx.clearRect(0,0,w,h);
 
-  const exerciseId = $('#trainingExercise')?.value;
-  const metric = $('#trainingMetric')?.value || 'reps';
 
-  if(!exerciseId) return;
+  const exerciseSelect = $('#trainingExercise');
+  const metricSelect = $('#trainingMetric');
 
-  // History is stored newest first,
-  // so reverse it for chronological graphing.
+  if(!exerciseSelect || !metricSelect) return;
+
+
+  const exerciseId = exerciseSelect.value;
+  const metric = metricSelect.value;
+
+
+  // History is stored newest first.
+  // Reverse it so the graph runs oldest → newest.
+
   const workouts = [...state.history].reverse();
 
   const points = [];
+
 
   workouts.forEach(h => {
 
@@ -331,6 +361,7 @@ function drawTrainingChart(){
 
     if(!ex) return;
 
+
     let value;
 
     if(metric === 'load'){
@@ -339,14 +370,16 @@ function drawTrainingChart(){
       value = Number(ex.reps) || 0;
     }
 
+
     points.push({
-      date: h.date,
-      value
+      date:h.date,
+      value:value
     });
 
   });
 
-  if(points.length < 1){
+
+  if(!points.length){
 
     ctx.fillStyle = '#9aa7ba';
     ctx.font = '14px system-ui';
@@ -360,30 +393,37 @@ function drawTrainingChart(){
     return;
   }
 
+
   const values = points.map(p => p.value);
 
   let min = Math.min(...values);
   let max = Math.max(...values);
 
-  // Give the graph some breathing room
+
   if(min === max){
+
     min = Math.max(0,min-1);
     max = max+1;
+
   }else{
+
     const padding = (max-min)*0.15;
+
     min = Math.max(0,min-padding);
     max = max+padding;
+
   }
 
+
   // Grid
+
   ctx.strokeStyle = '#263247';
   ctx.lineWidth = 1;
 
   for(let i=0;i<5;i++){
 
     const y =
-      30 +
-      i*(h-60)/4;
+      30 + i*(h-60)/4;
 
     ctx.beginPath();
     ctx.moveTo(40,y);
@@ -392,7 +432,9 @@ function drawTrainingChart(){
 
   }
 
+
   // Training line
+
   ctx.strokeStyle = '#6ea8ff';
   ctx.lineWidth = 4;
   ctx.beginPath();
@@ -417,7 +459,9 @@ function drawTrainingChart(){
 
   ctx.stroke();
 
+
   // Points
+
   ctx.fillStyle = '#6ea8ff';
 
   points.forEach((p,i) => {
@@ -436,46 +480,57 @@ function drawTrainingChart(){
 
   });
 
+
   // Current value
+
   const last = points[points.length-1];
 
   ctx.fillStyle = '#f4f7fb';
   ctx.font = '14px system-ui';
 
-  const unit =
-    metric === 'load'
-      ? ' kg'
-      : ' reps';
-
   ctx.fillText(
-    `${last.value}${unit}`,
+    metric === 'load'
+      ? `${last.value} kg`
+      : `${last.value} reps`,
     45,
     22
   );
 
-  // Bottom date labels
+
+  // Date labels
+
   ctx.fillStyle = '#9aa7ba';
   ctx.font = '11px system-ui';
 
+
   const firstDate =
     new Date(points[0].date)
-      .toLocaleDateString(undefined,{
-        month:'short',
-        day:'numeric'
-      });
+      .toLocaleDateString(
+        undefined,
+        {
+          month:'short',
+          day:'numeric'
+        }
+      );
+
 
   const lastDate =
     new Date(points[points.length-1].date)
-      .toLocaleDateString(undefined,{
-        month:'short',
-        day:'numeric'
-      });
+      .toLocaleDateString(
+        undefined,
+        {
+          month:'short',
+          day:'numeric'
+        }
+      );
+
 
   ctx.fillText(
     firstDate,
     45,
     h-8
   );
+
 
   if(points.length > 1){
 
@@ -491,22 +546,58 @@ function drawTrainingChart(){
   }
 }
 
-  $('#main').innerHTML=state.history.map((h,i)=>`
+
+function renderHistory(){
+
+  if(!state.history.length){
+
+    $('#main').innerHTML = `
+      <div class="empty">
+        No completed workouts yet.<br><br>
+
+        <button
+          class="btn"
+          onclick="WC.go('workout')">
+          Start Workout
+        </button>
+      </div>
+    `;
+
+    return;
+  }
+
+
+  $('#main').innerHTML = state.history.map((h,i) => `
+
     <article class="card">
-      <div class="section-title" style="margin:0 0 8px">
-        <h3>${fmtDate(h.date)}</h3>
+
+      <div
+        class="section-title"
+        style="margin:0 0 8px">
+
+        <h3>
+          ${fmtDate(h.date)}
+        </h3>
 
         <div class="actions">
-          <span class="pill good">Completed</span>
+
+          <span class="pill good">
+            Completed
+          </span>
+
           <button
             class="btn danger small"
             onclick="WC.deleteHistory('${esc(h.id)}')">
             Delete
           </button>
+
         </div>
+
       </div>
 
+
       <table class="table">
+
         <thead>
           <tr>
             <th>Exercise</th>
@@ -516,18 +607,39 @@ function drawTrainingChart(){
           </tr>
         </thead>
 
+
         <tbody>
-          ${h.exercises.map(x=>`
+
+          ${h.exercises.map(x => `
+
             <tr>
-              <td>${esc(x.name)}</td>
-              <td>${x.reps} × ${x.sets}</td>
-              <td>${x.load?x.load+' kg':'BW'}</td>
-              <td>${x.rir}</td>
+
+              <td>
+                ${esc(x.name)}
+              </td>
+
+              <td>
+                ${x.reps} × ${x.sets}
+              </td>
+
+              <td>
+                ${x.load ? x.load+' kg' : 'BW'}
+              </td>
+
+              <td>
+                ${x.rir}
+              </td>
+
             </tr>
+
           `).join('')}
+
         </tbody>
+
       </table>
+
     </article>
+
   `).join('');
 }
   function renderSettings(){
